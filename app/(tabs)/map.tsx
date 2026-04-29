@@ -53,15 +53,15 @@ const BANK_BRANCHES = [
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme() ?? "light";
+  const colorScheme = "light";
   const colors = Colors[colorScheme as "light" | "dark"];
   const [selectedBranch, setSelectedBranch] = useState(BANK_BRANCHES[0]);
-  const [mapType, setMapType] = useState<"standard" | "satellite">("satellite");
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [isCardVisible, setIsCardVisible] = useState(true);
   const mapRef = useRef<MapView>(null);
 
   const toggleMapType = () => {
-    setMapType((prev) => (prev === "standard" ? "satellite" : "satellite"));
+    setMapType((prev) => (prev === "standard" ? "satellite" : "standard"));
   };
 
   const centerOnAll = () => {

@@ -129,8 +129,8 @@ export default function App() {
       console.error("Fetch Error:", err);
       // Enhanced error messaging for 404 and network issues
       const msg = err.response?.status === 404 
-        ? "Verification endpoint not found (404). Trying secondary endpoint..."
-        : (err.response?.data?.message || err.message || 'Failed to fetch proof data');
+        ? "ບໍ່ພົບຈຸດເຊື່ອມຕໍ່ການກວດສອບ (404). ກຳລັງລອງຈຸດເຊື່ອມຕໍ່ສຳຮອງ..."
+        : (err.response?.data?.message || err.message || 'ບໍ່ສາມາດດຶງຂໍ້ມູນການກວດສອບໄດ້');
       setError(msg);
       setOneProofData(null);
     } finally {
@@ -188,12 +188,12 @@ export default function App() {
             fetchOneProof(qrData);
           } else {
             setLoading(false);
-            Alert.alert("QR Not Found", "Could not detect a valid QR code in the selected image.");
+            Alert.alert("ບໍ່ພົບ QR Code", "ບໍ່ສາມາດກວດພົບ QR code ທີ່ຖືກຕ້ອງໃນຮູບພາບທີ່ເລືອກ.");
           }
         } catch (decodeErr) {
           setLoading(false);
           console.error("Decode Error:", decodeErr);
-          Alert.alert("Processing Error", "Failed to analyze the image for QR codes.");
+          Alert.alert("ເກີດຂໍ້ຜິດພາດໃນການປະມວນຜົນ", "ບໍ່ສາມາດວິເຄາະຮູບພາບເພື່ອຫາ QR code ໄດ້.");
         }
       }
     } catch (err) {
@@ -206,7 +206,7 @@ export default function App() {
     if (!permission?.granted) {
       const { granted } = await requestPermission();
       if (!granted) {
-        Alert.alert("Permission Required", "Camera access is needed to scan QR codes.");
+        Alert.alert("ຕ້ອງການສິດເຂົ້າເຖິງ", "ຈຳເປັນຕ້ອງມີສິດເຂົ້າເຖິງກ້ອງຖ່າຍຮູບເພື່ອສະແກນ QR codes.");
         return;
       }
     }

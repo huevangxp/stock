@@ -155,7 +155,8 @@ export default function App() {
         const formData = new FormData();
         const filename = imageUri.split('/').pop() || 'image.jpg';
         const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image`;
+        let type = match ? `image/${match[1]}` : `image/jpeg`;
+        if (type === 'image/jpg') type = 'image/jpeg';
         
         formData.append('file', {
           uri: imageUri,
@@ -164,11 +165,22 @@ export default function App() {
         } as any);
 
         try {
-          const decodeResponse = await axios.post('https://api.qrserver.com/v1/read-qr-code/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+          // In React Native, fetch is much more reliable for FormData than Axios.
+          // Do NOT set Content-Type manually; fetch will set it with the correct boundary.
+          const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'Accept': 'application/json',
+            },
           });
           
-          const qrData = decodeResponse.data[0]?.symbol[0]?.data;
+          if (!response.ok) {
+            throw new Error(`Server returned status ${response.status}`);
+          }
+          
+          const decodeResponse = await response.json();
+          const qrData = decodeResponse[0]?.symbol[0]?.data;
           
           if (qrData) {
             setQrString(qrData);

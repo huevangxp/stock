@@ -31,6 +31,41 @@ const OneProofSlipCard = ({ data }: { data: any }) => (
   </View>
 );
 
+// EMV QR Parsing Logic
+function parseEmvQrLine(qrcode: string) {
+  const res: any = {};
+  const qrlen = qrcode.length;
+  let pos = 0;
+  try {
+    while (pos < qrlen) {
+      const field = parseInt(qrcode.substring(pos, pos + 2));
+      const length = parseInt(qrcode.substring(pos + 2, pos + 4));
+      const data = qrcode.substring(pos + 4, pos + 4 + length);
+      if (!isNaN(field)) {
+        res[field] = data;
+      }
+      pos += 4 + length;
+    }
+  } catch (error) {
+    console.log("Parse line error:", error);
+  }
+  return res;
+}
+
+function parseEmvQr(qrcode: string) {
+  try {
+    const res = parseEmvQrLine(qrcode);
+    if (res[33]) res[33] = parseEmvQrLine(res[33]);
+    if (res[38]) res[38] = parseEmvQrLine(res[38]);
+    if (res[62]) res[62] = parseEmvQrLine(res[62]);
+    if (res[64]) res[64] = parseEmvQrLine(res[64]);
+    return res;
+  } catch (e) {
+    console.error('Parse Error:', e);
+  }
+  return {};
+}
+
 export default function App() {
   const [qrString, setQrString] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,25 +91,35 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      let ticket = qr;
+      let ticket = '';
+      let fccref = '';
 
-      // Extract ticket UUID if the scanned QR is a full BCEL URL
-      // Example: https://onepay.bcel.com.la/verify/123e4567-e89b-12d3-a456-426614174000
-      if (qr.includes('verify/')) {
-        const parts = qr.split('verify/');
-        if (parts.length > 1) {
-          ticket = parts[1].split('?')[0]; // Get the UUID part, ignore query params
+      // 1. Try to parse as raw EMV QR (starts with 000201)
+      if (qr.startsWith('000201')) {
+        const result = parseEmvQr(qr);
+        fccref = (result[33]?.['4'] || result[38]?.['4'] || '').replace(/\s+/g, '');
+        ticket = (result[33]?.['3'] || result[38]?.['3'] || '').replace(/\s+/g, '');
+      } 
+      
+      // 2. Fallback: Extract from URL if the above failed
+      if (!ticket || !fccref) {
+        if (qr.includes('verify/')) {
+          ticket = qr.split('verify/')[1].split('?')[0];
+        } else if (qr.includes('ticket=')) {
+          ticket = qr.split('ticket=')[1].split('&')[0];
         }
-      } else if (qr.includes('ticket=')) {
-        const parts = qr.split('ticket=');
-        if (parts.length > 1) {
-          ticket = parts[1].split('&')[0];
+        
+        if (qr.includes('fccref=')) {
+          fccref = qr.split('fccref=')[1].split('&')[0];
         }
       }
 
+      // If we still don't have a ticket, use the raw qr as a last resort
+      if (!ticket) ticket = qr;
+
       // Corrected endpoint: 'onesurce.php' is the standard for BCEL Port 8083
-      const fccref = ''; 
       const url = `https://bcel.la:8083/onesurce.php?fccref=${fccref}&ticket=${ticket}`;
+      console.log(`Verifying: FCCRef=${fccref}, Ticket=${ticket}`);
       
       const response = await axios.get(url, {
         headers: { 'User-Agent': 'Dart/2.10 (dart:io)' },

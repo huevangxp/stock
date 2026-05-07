@@ -117,8 +117,8 @@ export default function App() {
       // If we still don't have a ticket, use the raw qr as a last resort
       if (!ticket) ticket = qr;
 
-      // Corrected endpoint: 'onesurce.php' is the standard for BCEL Port 8083
-      const url = `https://bcel.la:8083/onesurce.php?fccref=${fccref}&ticket=${ticket}`;
+      // Using the endpoint provided by the user
+      const url = `https://bcel.la:8083/onesure.php?fccref=${fccref}&ticket=${ticket}`;
       console.log(`Verifying: FCCRef=${fccref}, Ticket=${ticket}`);
       
       const response = await axios.get(url, {

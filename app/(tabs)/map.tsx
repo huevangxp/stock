@@ -23,13 +23,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 
 const API_BASE_URL = 'http://10.0.2.2:5551/api'; // Changed from localhost to 10.0.2.2 for Android emulator compatibility
 
-// Placeholder for OneProofSlipCard since it wasn't provided
-const OneProofSlipCard = ({ data }: { data: any }) => (
-  <View style={styles.cardPlaceholder}>
-    <Text style={styles.cardPlaceholderText}>Verification Data:</Text>
-    <Text style={styles.cardDataText}>{JSON.stringify(data, null, 2)}</Text>
-  </View>
-);
+import OneProofSlipCard from '../../components/OneProofSlipCard';
 
 // EMV QR Parsing Logic
 function parseEmvQrLine(qrcode: string) {

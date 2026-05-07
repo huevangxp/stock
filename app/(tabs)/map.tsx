@@ -10,6 +10,7 @@ import {
   Linking,
   Alert,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import axios from 'axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,6 +39,8 @@ export default function App() {
 
   const [openSelectQR, setOpenSelectQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [openManualEntry, setOpenManualEntry] = useState(false);
+  const [manualInput, setManualInput] = useState('');
   
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -115,23 +118,8 @@ export default function App() {
   };
 
   const promptManualQR = () => {
-    Alert.prompt(
-      "Enter QR String",
-      "Paste the BCEL OnePay QR text manually",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Verify", 
-          onPress: (text) => {
-            if (text) {
-              setQrString(text);
-              fetchOneProof(text);
-            }
-          }
-        }
-      ],
-      "plain-text"
-    );
+    setManualInput('');
+    setOpenManualEntry(true);
   };
 
   return (
@@ -276,6 +264,52 @@ export default function App() {
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setOpenSelectQR(false)} style={styles.modalCloseBtn}>
                 <Text style={styles.modalCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Manual Entry Modal */}
+      <Modal
+        visible={openManualEntry}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setOpenManualEntry(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Enter QR String</Text>
+            <Text style={styles.modalSubtitle}>Paste the BCEL OnePay QR text manually</Text>
+            
+            <TextInput
+              style={styles.textInput}
+              value={manualInput}
+              onChangeText={setManualInput}
+              placeholder="Paste QR here..."
+              placeholderTextColor="#999"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity 
+                onPress={() => setOpenManualEntry(false)} 
+                style={styles.modalCancelBtn}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalVerifyBtn}
+                onPress={() => {
+                  if (manualInput.trim()) {
+                    setQrString(manualInput.trim());
+                    setOpenManualEntry(false);
+                    fetchOneProof(manualInput.trim());
+                  }
+                }}
+              >
+                <Text style={styles.modalVerifyText}>Verify</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -563,5 +597,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontWeight: '500',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#333',
+    backgroundColor: '#f9f9f9',
+    marginBottom: 24,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalCancelBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#f1f1f1',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  modalVerifyBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(212, 32, 38, 0.1)',
+  },
+  modalVerifyText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#d42026',
   },
 });

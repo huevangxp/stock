@@ -11,6 +11,7 @@ import {
   Alert,
   Dimensions,
   TextInput,
+  Platform,
 } from 'react-native';
 import axios from 'axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -142,26 +143,25 @@ export default function App() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
-        quality: 1,
+        quality: 0.3, // Greatly reduce size to avoid 400 Payload Too Large errors from API
       });
 
       if (!result.canceled) {
         setOpenSelectQR(false);
         setLoading(true); // Start loading while decoding
         
-        const imageUri = result.assets[0].uri;
+        let imageUri = result.assets[0].uri;
+        if (Platform.OS === 'android' && !imageUri.startsWith('file://')) {
+          imageUri = `file://${imageUri}`;
+        }
         
         // We use a public API to decode the QR code since pure React Native lacks local decoding
         const formData = new FormData();
-        const filename = imageUri.split('/').pop() || 'image.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        let type = match ? `image/${match[1]}` : `image/jpeg`;
-        if (type === 'image/jpg') type = 'image/jpeg';
         
         formData.append('file', {
           uri: imageUri,
-          name: filename,
-          type,
+          name: 'qr-image.jpg',
+          type: 'image/jpeg',
         } as any);
 
         try {

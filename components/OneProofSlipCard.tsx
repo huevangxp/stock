@@ -16,6 +16,7 @@ export default function OneProofSlipCard({ data }: Props) {
   const date = data?.date || data?.txn_date || data?.TxnDate || new Date().toLocaleString();
   const ticket = data?.ticket || data?.txn_id || data?.TicketID || data?.fccref || 'N/A';
   const status = data?.status || data?.state || 'SUCCESS';
+  const username = data?.username || data?.name || data?.sender || data?.sender_name || data?.receiver || data?.receiver_name || data?.account_name || '';
   
   // Convert object to array to display generic fields if exact schema is unknown
   const entries = Object.entries(data || {}).filter(([key]) => 
@@ -29,7 +30,7 @@ export default function OneProofSlipCard({ data }: Props) {
         <View style={styles.notchRight} />
         
         <LinearGradient
-          colors={['#0a7ea4', '#055e7a']}
+          colors={['#d42026', '#b71c1c']}
           style={styles.headerGradient}
         >
           <MaterialCommunityIcons name="check-decagram" size={44} color="#fff" />
@@ -53,20 +54,21 @@ export default function OneProofSlipCard({ data }: Props) {
         </View>
 
         <View style={styles.detailsContainer}>
+          {username ? <DetailRow label="Name" value={username} /> : null}
           <DetailRow label="Date" value={date} />
           <DetailRow label="Reference" value={ticket} />
           <DetailRow label="Status" value={status} valueColor="#00e676" />
           
           {/* Render extra generic fields if there are more */}
           {entries.slice(0, 6).map(([key, value]) => {
-            const skipKeys = ['amount', 'txn_amount', 'TotalAmount', 'currency', 'ccy', 'date', 'txn_date', 'TxnDate', 'ticket', 'txn_id', 'TicketID', 'status', 'state'];
+            const skipKeys = ['amount', 'txn_amount', 'TotalAmount', 'currency', 'ccy', 'date', 'txn_date', 'TxnDate', 'ticket', 'txn_id', 'TicketID', 'status', 'state', 'username', 'name', 'sender', 'sender_name', 'receiver', 'receiver_name', 'account_name'];
             if (skipKeys.includes(key.toLowerCase())) return null;
             return <DetailRow key={key} label={key.replace(/_/g, ' ').toUpperCase()} value={String(value)} />;
           })}
         </View>
 
         <View style={styles.footer}>
-          <MaterialCommunityIcons name="shield-lock" size={16} color="#0a7ea4" />
+          <MaterialCommunityIcons name="shield-lock" size={16} color="#d42026" />
           <Text style={styles.footerText}>Secured by BCEL OneSure</Text>
         </View>
       </View>
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#0a7ea4',
+    color: '#d42026',
     fontWeight: '700',
   },
 });

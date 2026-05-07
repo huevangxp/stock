@@ -53,13 +53,18 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      // Using 10.0.2.2 so it works if testing on an Android emulator locally
-      const url = API_BASE_URL.replace('localhost', '10.0.2.2');
-      const response = await axios.get(`${url}/oneproof/${qr}`);
+      // Assuming the scanned QR code acts as the ticket or contains the needed info
+      const fccref = ''; 
+      const ticket = qr;
+      const url = `https://bcel.la:8083/onesure.php?fccref=${fccref}&ticket=${ticket}`;
+      
+      const response = await axios.get(url, {
+        headers: { 'User-Agent': 'Dart/2.10 (dart:io)' },
+      });
       setOneProofData(response.data);
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.msg || 'Failed to fetch proof data');
+      setError(err.response?.data?.message || err.message || 'Failed to fetch proof data');
       setOneProofData(null);
     } finally {
       setLoading(false);
@@ -69,7 +74,7 @@ export default function App() {
   const handleImagePicker = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: false,
         quality: 1,
       });

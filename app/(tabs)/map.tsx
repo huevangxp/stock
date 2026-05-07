@@ -236,8 +236,8 @@ export default function App() {
           <View style={styles.logoContainer}>
             <MaterialCommunityIcons name="shield-check" size={56} color="#d42026" />
           </View>
-          <Text style={styles.headerTitle}>BCEL OneProof Verify</Text>
-          <Text style={styles.headerSubtitle}>Public Verification Tool</Text>
+          <Text style={styles.headerTitle}>ກວດສອບໃບບິນ BCEL</Text>
+          <Text style={styles.headerSubtitle}>ເຄື່ອງມືກວດສອບໃບບິນສາທາລະນະ</Text>
         </View>
 
         {/* Main Content */}
@@ -246,8 +246,8 @@ export default function App() {
             <View style={styles.startState}>
               <View style={styles.infoBox}>
                 <MaterialCommunityIcons name="information" size={48} color="#d42026" style={styles.infoIcon} />
-                <Text style={styles.infoTitle}>Verify Transaction</Text>
-                <Text style={styles.infoSubtitle}>Tap the button below to scan a BCEL OnePay QR code.</Text>
+                <Text style={styles.infoTitle}>ກວດສອບທຸລະກຳ</Text>
+                <Text style={styles.infoSubtitle}>ກົດປຸ່ມດ້ານລຸ່ມເພື່ອສະແກນ QR Code ຂອງ BCEL OnePay.</Text>
               </View>
 
               <View style={styles.actionBox}>
@@ -260,7 +260,7 @@ export default function App() {
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={promptManualQR} style={styles.manualEntryBtn}>
-                  <Text style={styles.manualEntryText}>Or Enter QR Text Manually</Text>
+                  <Text style={styles.manualEntryText}>ຫຼື ປ້ອນຂໍ້ຄວາມ QR ດ້ວຍຕົນເອງ</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -280,7 +280,7 @@ export default function App() {
                   />
                 ) : (
                   <View style={styles.cameraPlaceholder}>
-                    <Text style={{color: '#fff'}}>Requesting Camera Permission...</Text>
+                    <Text style={{color: '#fff'}}>ກຳລັງຮ້ອງຂໍສິດເຂົ້າເຖິງກ້ອງຖ່າຍຮູບ...</Text>
                   </View>
                 )}
                 
@@ -291,14 +291,14 @@ export default function App() {
                   <MaterialCommunityIcons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.scannerHelperText}>Align QR code within the frame</Text>
+              <Text style={styles.scannerHelperText}>ຈັດວາງ QR Code ໃຫ້ຢູ່ໃນກອບ</Text>
             </View>
           )}
 
           {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#d42026" />
-              <Text style={styles.loadingText}>Verifying with BCEL...</Text>
+              <Text style={styles.loadingText}>ກຳລັງກວດສອບກັບ BCEL...</Text>
             </View>
           )}
 
@@ -306,14 +306,14 @@ export default function App() {
             <View style={styles.resultContainer}>
               <View style={styles.successHeader}>
                 <MaterialCommunityIcons name="check-circle" size={56} color="#00e676" />
-                <Text style={styles.successTitle}>Verification Success</Text>
+                <Text style={styles.successTitle}>ການກວດສອບສຳເລັດ</Text>
               </View>
 
               <OneProofSlipCard data={oneProofData} />
 
               <TouchableOpacity style={styles.resetButton} onPress={reset} activeOpacity={0.8}>
                 <MaterialCommunityIcons name="refresh" size={20} color="#d42026" />
-                <Text style={styles.resetButtonText}>Scan Another</Text>
+                <Text style={styles.resetButtonText}>ສະແກນໃໝ່</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -332,13 +332,13 @@ export default function App() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© 2026 BCEL OneProof Verification System</Text>
+          <Text style={styles.footerText}>© 2026 ລະບົບກວດສອບ BCEL OneProof</Text>
           <TouchableOpacity 
             style={styles.githubLink}
             onPress={() => Linking.openURL('https://github.com/soulideth/BcelSlipCheck')}
           >
             <MaterialCommunityIcons name="github" size={16} color="#666" />
-            <Text style={styles.githubText}>OpenSource on GitHub</Text>
+            <Text style={styles.githubText}>OpenSource ເທິງ GitHub</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -352,23 +352,23 @@ export default function App() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Option</Text>
+            <Text style={styles.modalTitle}>ເລືອກທາງເລືອກ</Text>
             
             <View style={styles.modalOptions}>
               <TouchableOpacity style={styles.modalOptionBtn} onPress={openCamera}>
                 <MaterialCommunityIcons name="camera-outline" size={40} color="#d42026" />
-                <Text style={styles.modalOptionText}>Camera</Text>
+                <Text style={styles.modalOptionText}>ກ້ອງຖ່າຍຮູບ</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.modalOptionBtn} onPress={handleImagePicker}>
                 <MaterialCommunityIcons name="image-outline" size={40} color="#d42026" />
-                <Text style={styles.modalOptionText}>Image</Text>
+                <Text style={styles.modalOptionText}>ຮູບພາບ</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setOpenSelectQR(false)} style={styles.modalCloseBtn}>
-                <Text style={styles.modalCloseText}>Close</Text>
+                <Text style={styles.modalCloseText}>ປິດ</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -384,14 +384,14 @@ export default function App() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enter QR String</Text>
-            <Text style={styles.modalSubtitle}>Paste the BCEL OnePay QR text manually</Text>
+            <Text style={styles.modalTitle}>ປ້ອນຂໍ້ຄວາມ QR Code</Text>
+            <Text style={styles.modalSubtitle}>ວາງຂໍ້ຄວາມ QR ຂອງ BCEL OnePay ດ້ວຍຕົນເອງ</Text>
             
             <TextInput
               style={styles.textInput}
               value={manualInput}
               onChangeText={setManualInput}
-              placeholder="Paste QR here..."
+              placeholder="ວາງ QR ຢູ່ທີ່ນີ້..."
               placeholderTextColor="#999"
               autoCapitalize="none"
               autoCorrect={false}
@@ -402,7 +402,7 @@ export default function App() {
                 onPress={() => setOpenManualEntry(false)} 
                 style={styles.modalCancelBtn}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>ຍົກເລີກ</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.modalVerifyBtn}
@@ -414,7 +414,7 @@ export default function App() {
                   }
                 }}
               >
-                <Text style={styles.modalVerifyText}>Verify</Text>
+                <Text style={styles.modalVerifyText}>ກວດສອບ</Text>
               </TouchableOpacity>
             </View>
           </View>

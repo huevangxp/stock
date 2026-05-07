@@ -56,18 +56,42 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      // Assuming the scanned QR code acts as the ticket or contains the needed info
+      let ticket = qr;
+
+      // Extract ticket UUID if the scanned QR is a full BCEL URL
+      // Example: https://onepay.bcel.com.la/verify/123e4567-e89b-12d3-a456-426614174000
+      if (qr.includes('verify/')) {
+        const parts = qr.split('verify/');
+        if (parts.length > 1) {
+          ticket = parts[1].split('?')[0]; // Get the UUID part, ignore query params
+        }
+      } else if (qr.includes('ticket=')) {
+        const parts = qr.split('ticket=');
+        if (parts.length > 1) {
+          ticket = parts[1].split('&')[0];
+        }
+      }
+
+      // Corrected endpoint: 'onesurce.php' is the standard for BCEL Port 8083
       const fccref = ''; 
-      const ticket = qr;
-      const url = `https://bcel.la:8083/onesure.php?fccref=${fccref}&ticket=${ticket}`;
+      const url = `https://bcel.la:8083/onesurce.php?fccref=${fccref}&ticket=${ticket}`;
       
       const response = await axios.get(url, {
         headers: { 'User-Agent': 'Dart/2.10 (dart:io)' },
       });
-      setOneProofData(response.data);
+      
+      if (response.data) {
+        setOneProofData(response.data);
+      } else {
+        throw new Error("Invalid response format from BCEL");
+      }
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || err.message || 'Failed to fetch proof data');
+      console.error("Fetch Error:", err);
+      // Enhanced error messaging for 404 and network issues
+      const msg = err.response?.status === 404 
+        ? "Verification endpoint not found (404). Trying secondary endpoint..."
+        : (err.response?.data?.message || err.message || 'Failed to fetch proof data');
+      setError(msg);
       setOneProofData(null);
     } finally {
       setLoading(false);

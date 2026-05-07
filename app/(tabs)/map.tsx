@@ -84,16 +84,46 @@ export default function App() {
 
       if (!result.canceled) {
         setOpenSelectQR(false);
-        // Note: Decoding a QR code from a picked image purely in React Native without
-        // backend assistance or native modules is complex. 
-        // For demonstration, we alert the user:
-        Alert.alert(
-          "Image Processing", 
-          "Extracting QR data from saved images requires extra native modules. Please use the camera scanner instead."
-        );
+        setLoading(true); // Start loading while decoding
+        
+        const imageUri = result.assets[0].uri;
+        
+        // We use a public API to decode the QR code since pure React Native lacks local decoding
+        const formData = new FormData();
+        const filename = imageUri.split('/').pop() || 'image.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+        
+        formData.append('file', {
+          uri: imageUri,
+          name: filename,
+          type,
+        } as any);
+
+        try {
+          const decodeResponse = await axios.post('https://api.qrserver.com/v1/read-qr-code/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          
+          const qrData = decodeResponse.data[0]?.symbol[0]?.data;
+          
+          if (qrData) {
+            setQrString(qrData);
+            // Successfully extracted the QR text! Now verify it with BCEL.
+            fetchOneProof(qrData);
+          } else {
+            setLoading(false);
+            Alert.alert("QR Not Found", "Could not detect a valid QR code in the selected image.");
+          }
+        } catch (decodeErr) {
+          setLoading(false);
+          console.error("Decode Error:", decodeErr);
+          Alert.alert("Processing Error", "Failed to analyze the image for QR codes.");
+        }
       }
     } catch (err) {
       console.log("Image picker error:", err);
+      setLoading(false);
     }
   };
 

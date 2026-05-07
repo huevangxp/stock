@@ -1,401 +1,562 @@
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
-import { LinearGradient } from "expo-linear-gradient";
-import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  Linking,
+  Alert,
+  Dimensions,
+} from 'react-native';
+import axios from 'axios';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 
-/**
- * BillUploadScreen - A premium interface for uploading BCEL bill payments.
- * Connects to the BCEL Onesure API using Axios with custom headers.
- */
-export default function BillUploadScreen() {
-  const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme as "light" | "dark"];
+// NOTE: You need to install expo-camera for QR scanning to work
+// Run: npx expo install expo-camera
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
-  // Form State
-  const [fccref, setFccref] = useState("");
-  const [ticket, setTicket] = useState("");
-  const [image, setImage] = useState<string | null>(null);
+const API_BASE_URL = 'http://10.0.2.2:5551/api'; // Changed from localhost to 10.0.2.2 for Android emulator compatibility
+
+// Placeholder for OneProofSlipCard since it wasn't provided
+const OneProofSlipCard = ({ data }: { data: any }) => (
+  <View style={styles.cardPlaceholder}>
+    <Text style={styles.cardPlaceholderText}>Verification Data:</Text>
+    <Text style={styles.cardDataText}>{JSON.stringify(data, null, 2)}</Text>
+  </View>
+);
+
+export default function App() {
+  const [qrString, setQrString] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [oneProofData, setOneProofData] = useState<any>(null);
 
-  // Pick an image from the library
-  const pickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission Denied", "We need access to your photos to upload a bill.");
-        return;
-      }
+  const [openSelectQR, setOpenSelectQR] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  
+  const [permission, requestPermission] = useCameraPermissions();
 
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setImage(result.assets[0].uri);
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Could not open image picker. Please ensure expo-image-picker is installed.");
+  const handleBarcodeScanned = ({ type, data }: any) => {
+    if (data) {
+      setQrString(data);
+      setShowScanner(false);
+      fetchOneProof(data);
     }
   };
 
-  // Handle the API connection and upload
-  const handleUpload = async () => {
-    if (!fccref || !ticket) {
-      Alert.alert("Required Fields", "Please enter both FCC Reference and Ticket Number.");
-      return;
-    }
-
+  const fetchOneProof = async (qr: string) => {
     setLoading(true);
+    setError('');
     try {
-      // API endpoint from user request
-      const url = `https://bcel.la:8083/onesure.php?fccref=${fccref}&ticket=${ticket}`;
-      
-      const formData = new FormData();
-      if (image) {
-        const uriParts = image.split(".");
-        const fileType = uriParts[uriParts.length - 1];
-        
-        // Append image file to formData
-        formData.append("file", {
-          uri: image,
-          name: `bill_${Date.now()}.${fileType}`,
-          type: `image/${fileType}`,
-        } as any);
-      }
-
-      // Connecting to API using Axios with specific headers
-      const response = await axios.post(url, formData, {
-        headers: {
-          "User-Agent": "Dart/2.10 (dart:io)",
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("BCEL Response:", response.data);
-
-      if (response.status === 200) {
-        Alert.alert("Success", "Payment receipt uploaded successfully!");
-        // Reset form on success
-        setFccref("");
-        setTicket("");
-        setImage(null);
-      }
-    } catch (error: any) {
-      console.error("Upload Error:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to connect to BCEL server.";
-      Alert.alert("Upload Failed", errorMessage);
+      // Using 10.0.2.2 so it works if testing on an Android emulator locally
+      const url = API_BASE_URL.replace('localhost', '10.0.2.2');
+      const response = await axios.get(`${url}/oneproof/${qr}`);
+      setOneProofData(response.data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.msg || 'Failed to fetch proof data');
+      setOneProofData(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleImagePicker = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setOpenSelectQR(false);
+        // Note: Decoding a QR code from a picked image purely in React Native without
+        // backend assistance or native modules is complex. 
+        // For demonstration, we alert the user:
+        Alert.alert(
+          "Image Processing", 
+          "Extracting QR data from saved images requires extra native modules. Please use the camera scanner instead."
+        );
+      }
+    } catch (err) {
+      console.log("Image picker error:", err);
+    }
+  };
+
+  const openCamera = async () => {
+    if (!permission?.granted) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert("Permission Required", "Camera access is needed to scan QR codes.");
+        return;
+      }
+    }
+    setOpenSelectQR(false);
+    setShowScanner(true);
+  };
+
+  const reset = () => {
+    setQrString('');
+    setOneProofData(null);
+    setError('');
+    setShowScanner(false);
+    setOpenSelectQR(false);
+  };
+
+  const promptManualQR = () => {
+    Alert.prompt(
+      "Enter QR String",
+      "Paste the BCEL OnePay QR text manually",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Verify", 
+          onPress: (text) => {
+            if (text) {
+              setQrString(text);
+              fetchOneProof(text);
+            }
+          }
+        }
+      ],
+      "plain-text"
+    );
+  };
+
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
-    >
-      <LinearGradient
-        colors={colorScheme === "dark" ? ["#121212", "#000"] : ["#f8f9fa", "#eef2f7"]}
-        style={styles.container}
-      >
-        <ScrollView 
-          contentContainerStyle={[
-            styles.scrollContent, 
-            { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View style={[styles.iconCircle, { backgroundColor: colorScheme === "dark" ? "#1e1e1e" : "#fff" }]}>
-              <MaterialCommunityIcons name="receipt-text-check" size={32} color="#0a7ea4" />
-            </View>
-            <Text style={[styles.title, { color: colors.text }]}>Bill Payment</Text>
-            <Text style={[styles.subtitle, { color: colors.icon }]}>Securely upload your payment evidence</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <MaterialCommunityIcons name="shield-check" size={56} color="#d42026" />
           </View>
+          <Text style={styles.headerTitle}>BCEL OneProof Verify</Text>
+          <Text style={styles.headerSubtitle}>Public Verification Tool</Text>
+        </View>
 
-          {/* Form Card */}
-          <View style={[styles.card, { backgroundColor: colors.background }]}>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>FCC Reference</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colorScheme === "dark" ? "#1e1e1e" : "#f1f3f5" }]}>
-                <MaterialCommunityIcons name="identifier" size={20} color="#0a7ea4" style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Enter Reference"
-                  placeholderTextColor={colors.icon + "80"}
-                  value={fccref}
-                  onChangeText={setFccref}
-                  autoCapitalize="characters"
-                />
+        {/* Main Content */}
+        <View style={styles.mainCard}>
+          {!oneProofData && !showScanner && !loading && (
+            <View style={styles.startState}>
+              <View style={styles.infoBox}>
+                <MaterialCommunityIcons name="information" size={48} color="#d42026" style={styles.infoIcon} />
+                <Text style={styles.infoTitle}>Verify Transaction</Text>
+                <Text style={styles.infoSubtitle}>Tap the button below to scan a BCEL OnePay QR code.</Text>
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Ticket Number</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colorScheme === "dark" ? "#1e1e1e" : "#f1f3f5" }]}>
-                <MaterialCommunityIcons name="ticket-outline" size={20} color="#0a7ea4" style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Enter Ticket ID"
-                  placeholderTextColor={colors.icon + "80"}
-                  value={ticket}
-                  onChangeText={setTicket}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-
-            {/* Image Picker Section */}
-            <Text style={[styles.label, { color: colors.text, marginBottom: 12 }]}>Proof of Payment</Text>
-            <TouchableOpacity 
-              style={[
-                styles.imagePicker, 
-                { 
-                  borderColor: colorScheme === "dark" ? "#333" : "#e9ecef",
-                  backgroundColor: colorScheme === "dark" ? "#121212" : "#fafafa"
-                }
-              ]} 
-              onPress={pickImage}
-              activeOpacity={0.8}
-            >
-              {image ? (
-                <View style={styles.imageContainer}>
-                  <Image source={{ uri: image }} style={styles.previewImage} />
-                  <TouchableOpacity 
-                    style={styles.removeBtn} 
-                    onPress={() => setImage(null)}
-                  >
-                    <MaterialCommunityIcons name="trash-can-outline" size={18} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.pickerPlaceholder}>
-                  <View style={styles.pickerIconBg}>
-                    <MaterialCommunityIcons name="camera-plus" size={24} color="#0a7ea4" />
-                  </View>
-                  <Text style={[styles.pickerText, { color: "#0a7ea4" }]}>Select Bill Image</Text>
-                  <Text style={[styles.pickerSubtext, { color: colors.icon }]}>JPEG, PNG up to 5MB</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {/* Action Button */}
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleUpload}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <LinearGradient
-                  colors={["#0a7ea4", "#055e7a"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.buttonGradient}
+              <View style={styles.actionBox}>
+                <TouchableOpacity 
+                  style={styles.scanButtonBig}
+                  onPress={() => setOpenSelectQR(true)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.buttonText}>Submit Payment</Text>
-                  <MaterialCommunityIcons name="send-outline" size={18} color="#fff" />
-                </LinearGradient>
-              )}
-            </TouchableOpacity>
-          </View>
+                  <MaterialCommunityIcons name="qrcode-scan" size={56} color="#d42026" />
+                </TouchableOpacity>
 
-          {/* Trust Footer */}
-          <View style={styles.footer}>
-            <View style={styles.divider} />
-            <View style={styles.trustRow}>
-              <MaterialCommunityIcons name="lock-outline" size={14} color={colors.icon} />
-              <Text style={[styles.footerText, { color: colors.icon }]}>End-to-end encrypted connection</Text>
+                <TouchableOpacity onPress={promptManualQR} style={styles.manualEntryBtn}>
+                  <Text style={styles.manualEntryText}>Or Enter QR Text Manually</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {showScanner && (
+            <View style={styles.scannerContainer}>
+              <View style={styles.cameraWrapper}>
+                {permission?.granted ? (
+                  <CameraView
+                    style={styles.camera}
+                    facing="back"
+                    onBarcodeScanned={handleBarcodeScanned}
+                    barcodeScannerSettings={{
+                      barcodeTypes: ["qr"],
+                    }}
+                  />
+                ) : (
+                  <View style={styles.cameraPlaceholder}>
+                    <Text style={{color: '#fff'}}>Requesting Camera Permission...</Text>
+                  </View>
+                )}
+                
+                <TouchableOpacity 
+                  style={styles.closeScannerBtn}
+                  onPress={() => setShowScanner(false)}
+                >
+                  <MaterialCommunityIcons name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.scannerHelperText}>Align QR code within the frame</Text>
+            </View>
+          )}
+
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#d42026" />
+              <Text style={styles.loadingText}>Verifying with BCEL...</Text>
+            </View>
+          )}
+
+          {oneProofData && (
+            <View style={styles.resultContainer}>
+              <View style={styles.successHeader}>
+                <MaterialCommunityIcons name="check-circle" size={56} color="#00e676" />
+                <Text style={styles.successTitle}>Verification Success</Text>
+              </View>
+
+              <OneProofSlipCard data={oneProofData} />
+
+              <TouchableOpacity style={styles.resetButton} onPress={reset} activeOpacity={0.8}>
+                <MaterialCommunityIcons name="refresh" size={20} color="#d42026" />
+                <Text style={styles.resetButtonText}>Scan Another</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Error Alert */}
+          {error ? (
+            <View style={styles.errorBox}>
+              <MaterialCommunityIcons name="alert-circle" size={20} color="#f44336" />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity onPress={() => setError('')}>
+                <MaterialCommunityIcons name="close" size={18} color="#f44336" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>© 2026 BCEL OneProof Verification System</Text>
+          <TouchableOpacity 
+            style={styles.githubLink}
+            onPress={() => Linking.openURL('https://github.com/soulideth/BcelSlipCheck')}
+          >
+            <MaterialCommunityIcons name="github" size={16} color="#666" />
+            <Text style={styles.githubText}>OpenSource on GitHub</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Select Option Modal */}
+      <Modal
+        visible={openSelectQR}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setOpenSelectQR(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Option</Text>
+            
+            <View style={styles.modalOptions}>
+              <TouchableOpacity style={styles.modalOptionBtn} onPress={openCamera}>
+                <MaterialCommunityIcons name="camera-outline" size={40} color="#d42026" />
+                <Text style={styles.modalOptionText}>Camera</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.modalOptionBtn} onPress={handleImagePicker}>
+                <MaterialCommunityIcons name="image-outline" size={40} color="#d42026" />
+                <Text style={styles.modalOptionText}>Image</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setOpenSelectQR(false)} style={styles.modalCloseBtn}>
+                <Text style={styles.modalCloseText}>Close</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      </LinearGradient>
-    </KeyboardAvoidingView>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   scrollContent: {
-    padding: 24,
+    flexGrow: 1,
+    padding: 20,
+    justifyContent: 'space-between',
   },
   header: {
-    alignItems: "center",
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 32, 38, 0.05)',
+    borderRadius: 40,
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#212121',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  mainCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 24,
+    padding: 24,
+    flexGrow: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+    marginBottom: 40,
+  },
+  startState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoBox: {
+    alignItems: 'center',
     marginBottom: 36,
   },
-  iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
+  infoIcon: {
+    marginBottom: 12,
   },
-  title: {
-    fontSize: 30,
-    fontWeight: "900",
-    letterSpacing: -0.5,
+  infoTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 15,
-    marginTop: 8,
-    fontWeight: "500",
-  },
-  card: {
-    borderRadius: 32,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
-  label: {
+  infoSubtitle: {
     fontSize: 14,
-    fontWeight: "800",
-    marginBottom: 10,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+  actionBox: {
+    alignItems: 'center',
+    width: '100%',
   },
-  inputIcon: {
-    paddingLeft: 18,
-  },
-  input: {
-    flex: 1,
-    padding: 16,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  imagePicker: {
-    width: "100%",
-    height: 180,
+  scanButtonBig: {
+    width: 120,
+    height: 120,
     borderRadius: 24,
+    backgroundColor: 'rgba(212, 32, 38, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 32, 38, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  manualEntryBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  manualEntryText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  scannerContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  cameraWrapper: {
+    width: '100%',
+    height: Dimensions.get('window').width * 0.8,
+    borderRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#000',
+    marginBottom: 16,
     borderWidth: 2,
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 32,
-    overflow: "hidden",
+    borderColor: 'rgba(212, 32, 38, 0.3)',
   },
-  pickerPlaceholder: {
-    alignItems: "center",
+  camera: {
+    flex: 1,
   },
-  pickerIconBg: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(10, 126, 164, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 14,
+  cameraPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  pickerText: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  pickerSubtext: {
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  imageContainer: {
-    width: "100%",
-    height: "100%",
-  },
-  previewImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  removeBtn: {
-    position: "absolute",
+  closeScannerBtn: {
+    position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: "rgba(255, 68, 68, 0.9)",
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  button: {
-    height: 64,
-    borderRadius: 20,
-    overflow: "hidden",
+  scannerHelperText: {
+    fontSize: 14,
+    color: '#666',
   },
-  buttonGradient: {
+  loadingContainer: {
     flex: 1,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
+  resultContainer: {
+    flex: 1,
+  },
+  successHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 8,
+  },
+  cardPlaceholder: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+    marginBottom: 24,
+  },
+  cardPlaceholderText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  cardDataText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(212, 32, 38, 0.08)',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  resetButtonText: {
+    color: '#d42026',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 67, 54, 0.2)',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 20,
     gap: 12,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  errorText: {
+    flex: 1,
+    color: '#f44336',
+    fontSize: 14,
+    fontWeight: '500',
   },
-  buttonText: {
-    color: "#fff",
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    fontWeight: 'bold',
+    color: '#212121',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  modalOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    marginBottom: 24,
+  },
+  modalOptionBtn: {
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 20,
+    borderRadius: 16,
+    width: 100,
+  },
+  modalOptionText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#444',
+  },
+  modalActions: {
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f1f1',
+    paddingTop: 16,
+  },
+  modalCloseBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
   },
   footer: {
-    marginTop: 40,
-    alignItems: "center",
-  },
-  divider: {
-    height: 1,
-    width: "100%",
-    backgroundColor: "rgba(0,0,0,0.05)",
-    marginBottom: 20,
-  },
-  trustRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    alignItems: 'center',
+    paddingVertical: 16,
   },
   footerText: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 8,
+  },
+  githubLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  githubText: {
     fontSize: 13,
-    fontWeight: "600",
+    color: '#666',
+    fontWeight: '500',
   },
 });

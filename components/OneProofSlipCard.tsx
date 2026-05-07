@@ -34,14 +34,14 @@ export default function OneProofSlipCard({ data }: Props) {
           style={styles.headerGradient}
         >
           <MaterialCommunityIcons name="check-decagram" size={44} color="#fff" />
-          <Text style={styles.headerTitle}>PAYMENT SLIP</Text>
-          <Text style={styles.headerSubtitle}>Verified Transaction</Text>
+          <Text style={styles.headerTitle}>ໃບບິນຊຳລະເງິນ</Text>
+          <Text style={styles.headerSubtitle}>ທຸລະກຳທີ່ກວດສອບແລ້ວ</Text>
         </LinearGradient>
       </View>
 
       <View style={styles.receiptBody}>
         <View style={styles.amountContainer}>
-          <Text style={styles.amountLabel}>Total Amount</Text>
+          <Text style={styles.amountLabel}>ຈຳນວນເງິນທັງໝົດ</Text>
           <Text style={styles.amountValue}>
             {Number(amount).toLocaleString()} <Text style={styles.currency}>{currency}</Text>
           </Text>
@@ -54,10 +54,10 @@ export default function OneProofSlipCard({ data }: Props) {
         </View>
 
         <View style={styles.detailsContainer}>
-          {username ? <DetailRow label="Name" value={username} /> : null}
-          <DetailRow label="Date" value={date} />
-          <DetailRow label="Reference" value={ticket} />
-          <DetailRow label="Status" value={status} valueColor="#00e676" />
+          {username ? <DetailRow label="ຊື່" value={username} /> : null}
+          <DetailRow label="ວັນທີ" value={date} />
+          <DetailRow label="ເລກອ້າງອີງ" value={ticket} />
+          <DetailRow label="ສະຖານະ" value={status} valueColor="#00e676" />
           
           {/* Render extra generic fields if there are more */}
           {entries.slice(0, 6).map(([key, value]) => {
@@ -69,7 +69,7 @@ export default function OneProofSlipCard({ data }: Props) {
 
         <View style={styles.footer}>
           <MaterialCommunityIcons name="shield-lock" size={16} color="#d42026" />
-          <Text style={styles.footerText}>Secured by BCEL OneSure</Text>
+          <Text style={styles.footerText}>ຮັບປະກັນຄວາມປອດໄພໂດຍ BCEL OneSure</Text>
         </View>
       </View>
     </View>
